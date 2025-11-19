@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,13 +9,19 @@
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 </head>
-<body>
-    <h1>Web Chess</h1>
-    <div id="status">White to move</div>
-    <div id="board" class="board"></div>
 
-    <button id="restart">Restart</button>
+<body>
+    <div id="wrapper">
+        <div id="board" class="board"></div>
+        <div id="dashBoard">
+            <h1>Web Chess</h1>
+            <div id="status">White to move</div>
+            <button id="restart">Restart</button>
+        </div>
+    </div>
+
 
     <script type="module" src="script.js"></script>
 </body>
+
 </html>

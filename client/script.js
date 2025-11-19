@@ -93,8 +93,8 @@ function createSquare(r, c, piece) {
 
 async function onSquareClick(coord) {
     // First click → select a square
+    const sq = document.querySelector(`[data-coord="${coord}"]`);
     if (!selected) {
-        const sq = document.querySelector(`[data-coord="${coord}"]`);
         if (sq && !sq.classList.contains("pieced")) {
             return;
         }
@@ -103,7 +103,14 @@ async function onSquareClick(coord) {
         update()
         return;
     }
+
     if (!available_moves.includes(coord)) {
+        if (sq && sq.classList.contains("pieced")) {
+            selected = coord;
+            available_moves = await getLegalMovesForPiece(coord)
+            update()
+            return;
+        }
         available_moves = null;
         selected = null;
         update()
@@ -126,6 +133,7 @@ async function onSquareClick(coord) {
 
     selected = null;
     whiteToMove = !whiteToMove;
+    available_moves = null;
     update();
 }
 
@@ -133,6 +141,7 @@ async function update() {
     updateStatus()
     const s = await fetchState();
     drawBoard(s.fen);
+    showMoveDots(available_moves);
 }
 
 document.getElementById("restart").onclick = async () => {
@@ -151,6 +160,26 @@ async function getLegalMovesForPiece(coord) {
     const data = await res.json();
     return data.moves
 }
+
+function showMoveDots(moves) {
+    document.querySelectorAll(".move-dot").forEach(e => e.remove());
+
+    moves.forEach(m => {
+        const sq = document.querySelector(`[data-coord="${m}"]`);
+        if (!sq) return;
+
+        const dot = document.createElement("div");
+
+        if (sq.classList.contains("pieced")) {
+            dot.classList.add("move-dot", "capture");
+        } else {
+            dot.classList.add("move-dot");
+        }
+
+        sq.appendChild(dot);
+    });
+}
+
 
 function updateStatus() {
     statusLbl.innerText = whiteToMove ? "White to move" : "Black to move"

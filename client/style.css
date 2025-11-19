@@ -1,6 +1,6 @@
 body {
     font-family: 'JetBrains Mono', 'Segoe UI', Tahoma, sans-serif;
-    background-color: #121212;
+    background-color: #302E2B;
     color: #fff;
     display: flex;
     flex-direction: column;
@@ -14,10 +14,21 @@ h1 {
     color: #e5c591;
 }
 
+#wrapper {
+    display: flex;
+    gap: 30px;
+}
+
+#dashBoard {
+    border-radius: 10px;
+    width: 500px;
+    background-color: #201E1D;
+}
+
 .board {
     display: grid;
-    grid-template-columns: repeat(8, 80px);
-    grid-template-rows: repeat(8, 80px);
+    grid-template-columns: repeat(8, 110px);
+    grid-template-rows: repeat(8, 110px);
 }
 
 #status {
@@ -48,22 +59,19 @@ h1 {
     justify-content: center;
     align-items: center;
     font-size: 32px;
+    position: relative;
 }
 
-.sqare.pieced {
+.pieced {
     cursor: grab;
 }
 
-.square.pieced:hover {
-    outline: 2px solid rgb(255, 255, 255);
-}
-
 .square.selected.light {
-    background-color: #edb0b0;
+    background-color: #e7d98a;
 }
 
 .square.selected.dark {
-    background-color: #b86262;
+    background-color: #b8b762;
 }
 
 .light {
@@ -72,4 +80,24 @@ h1 {
 
 .dark {
     background-color: #B88762;
+}
+
+.move-dot {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.2);
+    top: 50%;
+    left: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+}
+
+.move-dot.capture {
+    display: block;
+    width: 90px;
+    height: 90px;
+    border: 10px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    background: transparent;
 }
