@@ -16,12 +16,33 @@ body {
     grid-template-rows: repeat(8, 80px);
 }
 
+#restart {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    background-color: #EDD6B0;
+    color: #B88762;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-family: 'JetBrains Mono'
+}
+
+#restart:hover {
+    transform: scale(1.05);
+    background-color: #e5c591;
+}
+
 .square {
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 32px;
-    cursor: pointer;
+}
+
+.pieced {
+    cursor: grab;
 }
 
 .light {

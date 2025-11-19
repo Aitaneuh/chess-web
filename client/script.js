@@ -1,5 +1,21 @@
 let selected = null;
 let legalMoves = [];
+const pieces = {
+    "P": "/client/pieces/wP.svg",
+    "N": "/client/pieces/wN.svg",
+    "B": "/client/pieces/wB.svg",
+    "R": "/client/pieces/wR.svg",
+    "Q": "/client/pieces/wQ.svg",
+    "K": "/client/pieces/wK.svg",
+
+    "p": "/client/pieces/bP.svg",
+    "n": "/client/pieces/bN.svg",
+    "b": "/client/pieces/bB.svg",
+    "r": "/client/pieces/bR.svg",
+    "q": "/client/pieces/bQ.svg",
+    "k": "/client/pieces/bK.svg"
+};
+
 
 async function fetchState() {
     const res = await fetch("http://127.0.0.1:8000/api/state");
@@ -54,13 +70,19 @@ function createSquare(r, c, piece) {
     sq.dataset.coord = coord;
 
     if (piece) {
-        sq.textContent = piece;
+        sq.classList.add("pieced");
+        
+        const img = document.createElement("img");
+        img.src = pieces[piece];
+        img.classList.add("piece");
+        sq.appendChild(img);
     }
 
     sq.onclick = () => onSquareClick(coord);
 
     document.getElementById("board").appendChild(sq);
 }
+
 
 async function onSquareClick(coord) {
     // First click → select a square
