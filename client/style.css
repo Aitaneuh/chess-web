@@ -1,0 +1,33 @@
+body {
+    font-family: 'JetBrains Mono', 'Segoe UI', Tahoma, sans-serif;
+    background-color: #121212;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(8, 80px);
+    grid-template-rows: repeat(8, 80px);
+}
+
+.square {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 32px;
+    cursor: pointer;
+}
+
+.light {
+    background-color: #EDD6B0;
+}
+
+.dark {
+    background-color: #B88762;
+}
