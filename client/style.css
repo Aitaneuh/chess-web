@@ -10,10 +10,19 @@ body {
     margin: 0;
 }
 
+h1 {
+    color: #e5c591;
+}
+
 .board {
     display: grid;
     grid-template-columns: repeat(8, 80px);
     grid-template-rows: repeat(8, 80px);
+}
+
+#status {
+    margin-bottom: 20px;
+    font-size: 1.2rem;
 }
 
 #restart {
@@ -41,8 +50,20 @@ body {
     font-size: 32px;
 }
 
-.pieced {
+.sqare.pieced {
     cursor: grab;
+}
+
+.square.pieced:hover {
+    outline: 2px solid rgb(255, 255, 255);
+}
+
+.square.selected.light {
+    background-color: #edb0b0;
+}
+
+.square.selected.dark {
+    background-color: #b86262;
 }
 
 .light {

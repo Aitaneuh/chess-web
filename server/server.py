@@ -48,5 +48,19 @@ def restart():
     board = chess.Board()
     return jsonify({"success": True, "fen": board.fen()})
 
+@app.route("/api/legal_moves", methods=["POST"])
+def legal_moves():
+    global board
+    data = request.json
+    coord = data.get("coord") # type: ignore
+    square = chess.parse_square(coord)
+    moves = []
+
+    for move in board.legal_moves:
+        if move.from_square == square:
+            moves.append(chess.square_name(move.to_square))
+
+    return jsonify({"moves": moves})
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000, debug=True)

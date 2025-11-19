@@ -1,5 +1,8 @@
 let selected = null;
 let legalMoves = [];
+let whiteToMove = true;
+let available_moves = [];
+const statusLbl = document.getElementById("status")
 const pieces = {
     "P": "/client/pieces/wP.svg",
     "N": "/client/pieces/wN.svg",
@@ -33,7 +36,7 @@ function coordToSquare(coord) {
     const rank = parseInt(coord[1]);
     const col = "abcdefgh".indexOf(file);
     const row = 8 - rank;
-    return {row, col};
+    return { row, col };
 }
 
 function drawBoard(fen) {
@@ -71,11 +74,15 @@ function createSquare(r, c, piece) {
 
     if (piece) {
         sq.classList.add("pieced");
-        
+
         const img = document.createElement("img");
         img.src = pieces[piece];
         img.classList.add("piece");
         sq.appendChild(img);
+    }
+
+    if (selected && coord === selected) {
+        sq.classList.add("selected");
     }
 
     sq.onclick = () => onSquareClick(coord);
@@ -87,8 +94,20 @@ function createSquare(r, c, piece) {
 async function onSquareClick(coord) {
     // First click → select a square
     if (!selected) {
+        const sq = document.querySelector(`[data-coord="${coord}"]`);
+        if (sq && !sq.classList.contains("pieced")) {
+            return;
+        }
         selected = coord;
+        available_moves = await getLegalMovesForPiece(coord)
+        update()
         return;
+    }
+    if (!available_moves.includes(coord)) {
+        available_moves = null;
+        selected = null;
+        update()
+        return
     }
 
     // Second click → try move selected->coord
@@ -96,8 +115,8 @@ async function onSquareClick(coord) {
 
     const res = await fetch("http://127.0.0.1:8000/api/move", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({move})
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ move })
     });
     const data = await res.json();
 
@@ -106,17 +125,35 @@ async function onSquareClick(coord) {
     }
 
     selected = null;
+    whiteToMove = !whiteToMove;
     update();
 }
 
 async function update() {
+    updateStatus()
     const s = await fetchState();
     drawBoard(s.fen);
 }
 
 document.getElementById("restart").onclick = async () => {
-    await fetch("http://127.0.0.1:8000/api/restart", {method: "POST"});
+    await fetch("http://127.0.0.1:8000/api/restart", { method: "POST" });
+    selected = null
+    whiteToMove = true;
     update();
 };
+
+async function getLegalMovesForPiece(coord) {
+    const res = await fetch("http://127.0.0.1:8000/api/legal_moves", {
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coord })
+    })
+    const data = await res.json();
+    return data.moves
+}
+
+function updateStatus() {
+    statusLbl.innerText = whiteToMove ? "White to move" : "Black to move"
+}
 
 update();
