@@ -23,6 +23,9 @@ h1 {
     border-radius: 10px;
     width: 500px;
     background-color: #201E1D;
+    flex-direction: column;
+    align-items: center;
+    display: flex;
 }
 
 .board {
@@ -67,11 +70,11 @@ h1 {
 }
 
 .square.selected.light {
-    background-color: #e7d98a;
+    background-color: #F6EA71;
 }
 
 .square.selected.dark {
-    background-color: #b8b762;
+    background-color: #DBC34A;
 }
 
 .light {
@@ -100,4 +103,14 @@ h1 {
     border: 10px solid rgba(0, 0, 0, 0.2);
     border-radius: 50%;
     background: transparent;
+}
+
+.checkmated-king {
+    background-color: #9e0000;
+    transition-duration: 200ms;
+}
+
+.won-king {
+    background-color: #009e1a;
+    transition-duration: 200ms;
 }

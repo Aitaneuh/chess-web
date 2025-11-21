@@ -62,5 +62,10 @@ def legal_moves():
 
     return jsonify({"moves": moves})
 
+@app.route("/api/is_checkmate", methods=["POST"])
+def is_checkmate():
+    global board
+    return jsonify({"is_checkmate": board.is_checkmate()})
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000, debug=True)

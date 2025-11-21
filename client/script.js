@@ -2,6 +2,9 @@ let selected = null;
 let legalMoves = [];
 let whiteToMove = true;
 let available_moves = [];
+let lastSelected = null;
+let lastMove = null;
+let checkmated = false;
 const statusLbl = document.getElementById("status")
 const pieces = {
     "P": "/client/pieces/wP.svg",
@@ -72,6 +75,21 @@ function createSquare(r, c, piece) {
     const coord = squareToCoord(r, c);
     sq.dataset.coord = coord;
 
+    if (checkmated && piece) {
+        if (whiteToMove && piece === "K") {
+            sq.classList.add("checkmated-king");
+        }
+        if (whiteToMove && piece === "k") {
+            sq.classList.add("won-king");
+        }
+        if (!whiteToMove && piece === "k") {
+            sq.classList.add("checkmated-king");
+        }
+        if (!whiteToMove && piece === "K") {
+            sq.classList.add("won-king");
+        }
+    }
+
     if (piece) {
         sq.classList.add("pieced");
 
@@ -85,6 +103,14 @@ function createSquare(r, c, piece) {
         sq.classList.add("selected");
     }
 
+    if (lastSelected && coord === lastSelected) {
+        sq.classList.add("selected");
+    }
+
+    if (lastMove && coord === lastMove) {
+        sq.classList.add("selected");
+    }
+
     sq.onclick = () => onSquareClick(coord);
 
     document.getElementById("board").appendChild(sq);
@@ -94,6 +120,13 @@ function createSquare(r, c, piece) {
 async function onSquareClick(coord) {
     // First click → select a square
     const sq = document.querySelector(`[data-coord="${coord}"]`);
+    if (coord == selected) {
+        available_moves = null;
+        selected = null;
+        update()
+        return
+    }
+
     if (!selected) {
         if (sq && !sq.classList.contains("pieced")) {
             return;
@@ -118,6 +151,8 @@ async function onSquareClick(coord) {
     }
 
     // Second click → try move selected->coord
+    lastMove = coord;
+    lastSelected = selected;
     const move = selected + coord;
 
     const res = await fetch("http://127.0.0.1:8000/api/move", {
@@ -138,6 +173,7 @@ async function onSquareClick(coord) {
 }
 
 async function update() {
+    checkmated = await is_checkmate()
     updateStatus()
     const s = await fetchState();
     drawBoard(s.fen);
@@ -148,6 +184,9 @@ document.getElementById("restart").onclick = async () => {
     await fetch("http://127.0.0.1:8000/api/restart", { method: "POST" });
     selected = null
     whiteToMove = true;
+    lastMove = null;
+    lastSelected = null;
+    checkmated = false;
     update();
 };
 
@@ -161,9 +200,18 @@ async function getLegalMovesForPiece(coord) {
     return data.moves
 }
 
+async function is_checkmate() {
+    const res = await fetch("http://127.0.0.1:8000/api/is_checkmate", { method: "POST" })
+    const data = await res.json();
+    return data.is_checkmate
+}
+
 function showMoveDots(moves) {
     document.querySelectorAll(".move-dot").forEach(e => e.remove());
 
+    if(!moves) {
+        return;
+    }
     moves.forEach(m => {
         const sq = document.querySelector(`[data-coord="${m}"]`);
         if (!sq) return;
