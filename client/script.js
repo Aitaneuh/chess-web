@@ -5,6 +5,7 @@ let available_moves = [];
 let lastSelected = null;
 let lastMove = null;
 let checkmated = false;
+let inCheck = false;
 const statusLbl = document.getElementById("status")
 const pieces = {
     "P": "/client/pieces/wP.svg",
@@ -87,6 +88,15 @@ function createSquare(r, c, piece) {
         }
         if (!whiteToMove && piece === "K") {
             sq.classList.add("won-king");
+        }
+    }
+
+    if (inCheck && piece && !checkmated) {
+        if (whiteToMove && piece === "K") {
+            sq.classList.add("inCheck-king");
+        }
+        if (!whiteToMove && piece === "k") {
+            sq.classList.add("inCheck-king");
         }
     }
 
@@ -176,6 +186,7 @@ async function update() {
     checkmated = await is_checkmate()
     updateStatus()
     const s = await fetchState();
+    inCheck = s.is_check;
     drawBoard(s.fen);
     showMoveDots(available_moves);
 }
@@ -187,6 +198,7 @@ document.getElementById("restart").onclick = async () => {
     lastMove = null;
     lastSelected = null;
     checkmated = false;
+    available_moves = [];
     update();
 };
 

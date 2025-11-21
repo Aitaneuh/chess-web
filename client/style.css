@@ -114,3 +114,8 @@ h1 {
     background-color: #009e1a;
     transition-duration: 200ms;
 }
+
+.inCheck-king {
+    background-color: #e06c00;
+    transition-duration: 200ms;
+}
