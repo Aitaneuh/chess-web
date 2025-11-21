@@ -230,7 +230,9 @@ function showMoveDots(moves) {
 
 
 function updateStatus() {
-    statusLbl.innerText = whiteToMove ? "White to move" : "Black to move"
+    if (!checkmated) { statusLbl.innerText = whiteToMove ? "White to move" : "Black to move" }
+    else { statusLbl.innerText = whiteToMove ? "Black won the match" : "White won the match" }
+    
 }
 
 update();
