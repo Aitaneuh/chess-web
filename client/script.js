@@ -69,6 +69,15 @@ function drawBoard(fen) {
     }
 }
 
+function letterToFullNamePiece(piece_letter) {
+    if (piece_letter == "p" || piece_letter == "P"){ return "pawn"}
+    if (piece_letter == "b" || piece_letter == "B"){ return "bishop"}
+    if (piece_letter == "n" || piece_letter == "N "){ return "knight"}
+    if (piece_letter == "r" || piece_letter == "R"){ return "rook"}
+    if (piece_letter == "q" || piece_letter == "Q"){ return "queen"}
+    if (piece_letter == "k" || piece_letter == "k"){ return "king"}
+}
+
 function createSquare(r, c, piece) {
     const sq = document.createElement("div");
     sq.className = "square " + ((r + c) % 2 === 0 ? "light" : "dark");
@@ -107,6 +116,7 @@ function createSquare(r, c, piece) {
         img.src = pieces[piece];
         img.classList.add("piece");
         sq.appendChild(img);
+        sq.classList.add(letterToFullNamePiece(piece))
     }
 
     if (selected && coord === selected) {
@@ -163,7 +173,14 @@ async function onSquareClick(coord) {
     // Second click → try move selected->coord
     lastMove = coord;
     lastSelected = selected;
-    const move = selected + coord;
+    var move = selected + coord;
+    const selected_sq = document.querySelector(`[data-coord="${selected}"]`);
+
+    if (selected_sq.classList.contains("pawn") && coord[1] == "8") {
+        move += "q"
+    } else if (selected_sq.classList.contains("pawn") && coord[1] == "1") {
+        move += "q"
+    }
 
     const res = await fetch("http://127.0.0.1:8000/api/move", {
         method: "POST",
