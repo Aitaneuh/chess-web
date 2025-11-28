@@ -40,7 +40,6 @@ h1 {
 }
 
 #restart {
-    margin-top: 20px;
     padding: 10px 20px;
     font-size: 1rem;
     border: none;
@@ -118,4 +117,44 @@ h1 {
 .inCheck-king {
     background-color: #e06c00;
     transition-duration: 200ms;
+}
+
+.toggle-container {
+    width: 50px;
+    height: 26px;
+    background: #aaa;
+    border-radius: 50px;
+    position: relative;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.toggle-container.active {
+    background: #EDD6B0;
+}
+
+.toggle {
+    width: 22px;
+    height: 22px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: 0.2s ease;
+}
+
+.toggle-container.active .toggle {
+    transform: translateX(24px);
+}
+
+#toggle-div {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    color: white;
+    width: fit-content;
+    user-select: none;
 }
