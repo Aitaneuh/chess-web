@@ -1,4 +1,5 @@
 from cmath import inf
+import random
 import time
 import chess
 import chess.polyglot
@@ -28,6 +29,10 @@ class AIAgent:
         except:
             pass
 
+        best_score = float("-inf")
+        if not board.legal_moves:
+            return ""
+        best_move = random.choice(list(board.legal_moves))
         
         for move in board.legal_moves:
             analysis_board = board.copy()
@@ -35,6 +40,14 @@ class AIAgent:
             if analysis_board.is_checkmate():
                 return move.uci()
 
+            score = self.negamax(board, -inf, inf, depth, analysis_board.turn)
+            if score > best_score or (score == best_score and random.random() < 0.3):
+                best_score = score
+                best_move = move
+
         execTime = time.time() - start
         print("Execution time:", execTime, "s")
-        return ""
+        return best_move.uci()
+    
+    def negamax(self, board: chess.Board, alpha: float, beta: float, depth:int, player: chess.Color) -> float:
+        return -inf
