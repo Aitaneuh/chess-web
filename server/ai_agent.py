@@ -122,7 +122,7 @@ class AIAgent:
                 best_move = move
 
         execTime = time.time() - start
-        print(f"AI simulated {self.simulated_moves} moves in {execTime:.3f}s and got a best score of {best_score}")
+        print(f"AI simulated {self.simulated_moves} moves in {execTime:.3f}s and got a best score of {best_score} with a depth of {new_depth}")
         self.simulated_moves = 0
 
         return best_move.uci() if best_move else ""
