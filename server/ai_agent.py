@@ -95,6 +95,19 @@ class AIAgent:
             value = self.PIECE_VALUES[piece_type]
             score += value * len(board.pieces(piece_type, chess.WHITE))
             score -= value * len(board.pieces(piece_type, chess.BLACK))
+
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece:
+                attackers = board.attackers(not piece.color, square)
+                defenders = board.attackers(piece.color, square)
+
+                if attackers and not defenders:
+                    value = self.PIECE_VALUES[piece.piece_type]
+                    if piece.color == chess.WHITE:
+                        score -= value // 2
+                    else:
+                        score += value // 2
         return score
     
     def order_moves(self, board: chess.Board, moves):
@@ -103,37 +116,39 @@ class AIAgent:
         for move in moves:
             score = 0
 
+            # 1. Prioritize captures (MVV-LVA like you do)
             if board.is_capture(move):
                 victim = board.piece_at(move.to_square)
                 attacker = board.piece_at(move.from_square)
 
-                if victim:
+                if victim and attacker:
                     score += 10_000 + (
-                        self.PIECE_VALUES[victim.piece_type]
-                        - (self.PIECE_VALUES[attacker.piece_type] if attacker else 0)
+                        self.PIECE_VALUES[victim.piece_type] -
+                        self.PIECE_VALUES[attacker.piece_type]
                     )
 
             else:
+                # 2. Castling bonus
+                if board.is_castling(move):
+                    score += 6_000  # small but important priority
+
+                # 3. Development bonus (only in early game)
+                if board.fullmove_number <= 10:
+                    piece = board.piece_at(move.from_square)
+                    if piece and piece.piece_type in (chess.KNIGHT, chess.BISHOP):
+                        score += 2_000
+
+                # 4. Centralization (your original idea but stronger)
                 to = move.to_square
                 file = chess.square_file(to)
                 rank = chess.square_rank(to)
-
-                center_bonus = (
-                    4 - abs(file - 3.5)
-                    + 4 - abs(rank - 3.5)
-                )
-
-                score += center_bonus * 2
-
-            board.push(move)
-            if board.is_check():
-                score += 50
-            board.pop()
+                score += 1_000 - abs(file - 3.5) - abs(rank - 3.5)
 
             scored.append((score, move))
 
         scored.sort(reverse=True, key=lambda x: x[0])
         return [m for _, m in scored]
+
 
 
     # DISCLAIMER : this syzygy function was not made by me
