@@ -74,7 +74,7 @@ def is_checkmate():
 @app.route("/api/ai_play", methods=["POST"])
 def ai_play():
     global board
-    move = ai_agent.play(board, depth=5)
+    move = ai_agent.play(board, depth=4)
     return jsonify({"move": move})
 
 if __name__ == "__main__":
