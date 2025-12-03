@@ -34,7 +34,9 @@ class AIAgent:
         best_move = None
 
         analysis_board = board.copy()
-        for move in analysis_board.legal_moves:
+        ordered_moves = self.order_moves(analysis_board, list(analysis_board.legal_moves))
+        for move in ordered_moves:
+
             analysis_board.push(move)
             score = -self.negamax(analysis_board, depth - 1, -inf, inf, 1 if analysis_board.turn else -1)
             analysis_board.pop()
@@ -60,7 +62,8 @@ class AIAgent:
 
         best_value = -inf
 
-        for move in board.legal_moves:
+        ordered_moves = self.order_moves(board, list(board.legal_moves))
+        for move in ordered_moves:
             self.simulated_moves += 1
 
             board.push(move)
@@ -83,3 +86,30 @@ class AIAgent:
             score += value * len(board.pieces(piece_type, chess.WHITE))
             score -= value * len(board.pieces(piece_type, chess.BLACK))
         return score
+    
+    def order_moves(self, board: chess.Board, moves):
+        scored = []
+
+        for move in moves:
+            score = 0
+
+            if board.is_capture(move):
+                victim = board.piece_at(move.to_square)
+                attacker = board.piece_at(move.from_square)
+
+                if victim and attacker:
+                    score += 10_000 + (self.PIECE_VALUES[victim.piece_type] -
+                                    self.PIECE_VALUES[attacker.piece_type])
+
+            else:
+                to = move.to_square
+                file = chess.square_file(to)
+                rank = chess.square_rank(to)
+                # bonus for central squares (e4 e5 d4 d5)
+                score += 1_000 - abs(file - 3.5) - abs(rank - 3.5)
+
+            scored.append((score, move))
+
+        scored.sort(reverse=True, key=lambda x: x[0])
+        return [m for _, m in scored]
+
