@@ -54,7 +54,7 @@ class AIAgent:
             return color * self.evaluate(board)
 
         if board.is_checkmate():
-            return color * (-1_000_000 + (5 - depth))
+            return -1_000_000 + (5 - depth)
         if board.is_stalemate():
             return 0
 
