@@ -3,6 +3,10 @@ import random
 import time
 import chess
 import chess.polyglot
+import chess.syzygy
+from typing import Optional, Tuple
+
+SYZYGY_PATH = "/syzygy"
 
 class AIAgent:
     def __init__(self):
@@ -29,6 +33,12 @@ class AIAgent:
                 return entry.move.uci()
         except:
             pass
+
+        # Final tables
+        tb_move = self.choose_tablebase_move(board, tb_path=SYZYGY_PATH)
+        if tb_move:
+            print("Playing tablebase move:", tb_move)
+            return tb_move.uci()
 
         best_score = -inf
         best_move = None
@@ -97,19 +107,93 @@ class AIAgent:
                 victim = board.piece_at(move.to_square)
                 attacker = board.piece_at(move.from_square)
 
-                if victim and attacker:
-                    score += 10_000 + (self.PIECE_VALUES[victim.piece_type] -
-                                    self.PIECE_VALUES[attacker.piece_type])
+                if victim:
+                    score += 10_000 + (
+                        self.PIECE_VALUES[victim.piece_type]
+                        - (self.PIECE_VALUES[attacker.piece_type] if attacker else 0)
+                    )
 
             else:
                 to = move.to_square
                 file = chess.square_file(to)
                 rank = chess.square_rank(to)
-                # bonus for central squares (e4 e5 d4 d5)
-                score += 1_000 - abs(file - 3.5) - abs(rank - 3.5)
+
+                center_bonus = (
+                    4 - abs(file - 3.5)
+                    + 4 - abs(rank - 3.5)
+                )
+
+                score += center_bonus * 2
+
+            board.push(move)
+            if board.is_check():
+                score += 50
+            board.pop()
 
             scored.append((score, move))
 
         scored.sort(reverse=True, key=lambda x: x[0])
         return [m for _, m in scored]
 
+
+    # DISCLAIMER : this syzygy function was not made by me
+    def choose_tablebase_move(self, board: chess.Board, tb_path: str = SYZYGY_PATH) -> Optional[chess.Move]:
+        """
+        If the current position (or its next moves) is covered by syzygy tablebases,
+        pick the best move according to WDL/DTZ probe.
+        Returns a chess.Move or None if no tablebase info is available.
+        """
+        try:
+            with chess.syzygy.open_tablebase(tb_path) as tb:
+                best_win: Optional[Tuple[int, chess.Move]] = None   # (dtz, move) smallest dtz is best
+                best_draw: Optional[chess.Move] = None
+                best_loss: Optional[Tuple[int, chess.Move]] = None  # (dtz, move) largest dtz is best
+
+                # iterate all legal moves and probe resulting position
+                for mv in board.legal_moves:
+                    board.push(mv)
+                    try:
+                        wdl = tb.probe_wdl(board)   # expected: 1 win, 0 draw, -1 loss (probe may raise if not covered)
+                    except Exception:
+                        # not covered by TB for this resulting position
+                        board.pop()
+                        continue
+
+                    # try dtz if available (some tablebases / configs provide dtz)
+                    try:
+                        dtz = tb.probe_dtz(board)
+                        if dtz is None:
+                            dtz = 0
+                    except Exception:
+                        dtz = 0
+
+                    board.pop()
+
+                    if wdl == 1:
+                        # winning move: prefer smallest dtz (fastest conversion)
+                        if best_win is None or dtz < best_win[0]:
+                            best_win = (dtz, mv)
+                    elif wdl == 0:
+                        # any draw is acceptable; keep first draw if no win
+                        if best_draw is None:
+                            best_draw = mv
+                    else:  # wdl == -1
+                        # losing move: prefer largest dtz (delay loss)
+                        if best_loss is None or dtz > best_loss[0]:
+                            best_loss = (dtz, mv)
+
+                # choose priority: win > draw > loss
+                if best_win:
+                    return best_win[1]
+                if best_draw:
+                    return best_draw
+                if best_loss:
+                    return best_loss[1]
+
+                return None
+        except FileNotFoundError:
+            # tablebase path doesn't exist
+            return None
+        except Exception:
+            # any other TB error -> gracefully fallback
+            return None
