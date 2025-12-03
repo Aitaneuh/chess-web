@@ -16,12 +16,12 @@
 
 This project contains a lightweight chess engine written in Python using **python-chess**, featuring:
 
-* ✔️ Full **Negamax search** implementation
-* ✔️ **Alpha–Beta pruning**
-* ✔️ **Basic evaluation** (material score)
-* ✔️ **Transposition-ready architecture**
-* ✔️ **opening book support (.bin Polyglot)**
-* ✔️ Can be used as a standalone engine or embedded into any UI (CLI, WebSocket, GUI…)
+* Full **Negamax search** implementation
+* **Alpha–Beta pruning**
+* **Basic evaluation** (material score)
+* **Transposition-ready architecture**
+* **opening book support (.bin Polyglot)**
+* Can be used as a standalone engine or embedded into any UI (CLI, WebSocket, GUI…)
 
 ---
 
@@ -54,12 +54,12 @@ Currently the evaluation is **material-based only**:
 
 | Piece  | Value (centipawns) |
 | ------ | ------------------ |
-| Pawn   | 10                 |
-| Knight | 30                 |
-| Bishop | 30                 |
-| Rook   | 50                 |
-| Queen  | 90                 |
-| King   | 900  (symbolic)    |
+| Pawn   | 100                |
+| Knight | 300                |
+| Bishop | 300                |
+| Rook   | 500                |
+| Queen  | 900                |
+| King   | 9000 (symbolic)    |
 
 This keeps the engine stable, predictable, and easy to debug.
 
