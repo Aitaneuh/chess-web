@@ -6,6 +6,7 @@ let lastSelected = null;
 let lastMove = null;
 let checkmated = false;
 let inCheck = false;
+let againstAI = false;
 const statusLbl = document.getElementById("status")
 const pieces = {
     "P": "/client/pieces/wP.svg",
@@ -70,12 +71,12 @@ function drawBoard(fen) {
 }
 
 function letterToFullNamePiece(piece_letter) {
-    if (piece_letter == "p" || piece_letter == "P"){ return "pawn"}
-    if (piece_letter == "b" || piece_letter == "B"){ return "bishop"}
-    if (piece_letter == "n" || piece_letter == "N "){ return "knight"}
-    if (piece_letter == "r" || piece_letter == "R"){ return "rook"}
-    if (piece_letter == "q" || piece_letter == "Q"){ return "queen"}
-    if (piece_letter == "k" || piece_letter == "k"){ return "king"}
+    if (piece_letter == "p" || piece_letter == "P") { return "pawn" }
+    if (piece_letter == "b" || piece_letter == "B") { return "bishop" }
+    if (piece_letter == "n" || piece_letter == "N ") { return "knight" }
+    if (piece_letter == "r" || piece_letter == "R") { return "rook" }
+    if (piece_letter == "q" || piece_letter == "Q") { return "queen" }
+    if (piece_letter == "k" || piece_letter == "k") { return "king" }
 }
 
 function createSquare(r, c, piece) {
@@ -185,7 +186,7 @@ async function onSquareClick(coord) {
     const res = await fetch("http://127.0.0.1:8000/api/move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ move })
+        body: JSON.stringify({ "move": move })
     });
     const data = await res.json();
 
@@ -197,6 +198,10 @@ async function onSquareClick(coord) {
     whiteToMove = !whiteToMove;
     available_moves = null;
     update();
+    if (againstAI) {
+        await AI_play()
+        update();
+    }
 }
 
 async function update() {
@@ -221,7 +226,7 @@ document.getElementById("restart").onclick = async () => {
 
 async function getLegalMovesForPiece(coord) {
     const res = await fetch("http://127.0.0.1:8000/api/legal_moves", {
-        method: "POST", 
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ coord })
     })
@@ -238,7 +243,7 @@ async function is_checkmate() {
 function showMoveDots(moves) {
     document.querySelectorAll(".move-dot").forEach(e => e.remove());
 
-    if(!moves) {
+    if (!moves) {
         return;
     }
     moves.forEach(m => {
@@ -261,7 +266,39 @@ function showMoveDots(moves) {
 function updateStatus() {
     if (!checkmated) { statusLbl.innerText = whiteToMove ? "White to move" : "Black to move" }
     else { statusLbl.innerText = whiteToMove ? "Black won the match" : "White won the match" }
-    
+}
+
+const toggleContainer = document.querySelector(".toggle-container");
+
+if (againstAI) {
+    toggleContainer.classList.toggle("active", againstAI);
+}
+
+toggleContainer.addEventListener("click", () => {
+    againstAI = !againstAI;
+
+    toggleContainer.classList.toggle("active", againstAI);
+});
+
+
+async function AI_play() {
+    const ai_res = await fetch("http://127.0.0.1:8000/api/ai_play", { method: "POST" })
+    const data = await ai_res.json();
+
+    const res = await fetch("http://127.0.0.1:8000/api/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ "move": data.move })
+    });
+    const result = await res.json();
+
+    if (!result.success) {
+        console.log("Illegal move");
+        return
+    }
+    lastMove = data.move.slice(2, 4);
+    lastSelected = data.move.slice(0, 2);
+    whiteToMove = !whiteToMove
 }
 
 update();

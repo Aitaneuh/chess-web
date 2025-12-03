@@ -1,9 +1,13 @@
+import time
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import chess
 import chess.pgn
 
+from ai_agent import AIAgent
+
 app = Flask(__name__)
+ai_agent = AIAgent()
 CORS(app)
 
 # Global game state (simple version)
@@ -30,7 +34,7 @@ def get_state():
 def play_move():
     global board
     data = request.json
-    uci = data.get("move") # type: ignore
+    uci = data["move"] # type: ignore
 
     try:
         move = chess.Move.from_uci(uci)
@@ -66,6 +70,12 @@ def legal_moves():
 def is_checkmate():
     global board
     return jsonify({"is_checkmate": board.is_checkmate()})
+
+@app.route("/api/ai_play", methods=["POST"])
+def ai_play():
+    global board
+    move = ai_agent.play(board, depth=4)
+    return jsonify({"move": move})
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000, debug=True)
