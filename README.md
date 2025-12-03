@@ -10,7 +10,7 @@
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
 ![VanillaJS](https://img.shields.io/badge/Vanilla_JS-F0DB4F?style=for-the-badge&logo=javascript&logoColor=323330)
-![AI](https://img.shields.io/badge/AI-Minimax-blueviolet?style=for-the-badge&logo=OpenAI&logoColor=white)
+![AI](https://img.shields.io/badge/AI-Negamax-blueviolet?style=for-the-badge&logo=OpenAI&logoColor=white)
 
 ---
 
