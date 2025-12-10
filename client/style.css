@@ -39,7 +39,7 @@ h1 {
     font-size: 1.2rem;
 }
 
-#restart {
+.button {
     padding: 10px 20px;
     font-size: 1rem;
     border: none;
@@ -51,7 +51,7 @@ h1 {
     font-family: 'JetBrains Mono'
 }
 
-#restart:hover {
+.button:hover {
     transform: scale(1.05);
     background-color: #e5c591;
 }

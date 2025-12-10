@@ -224,6 +224,19 @@ document.getElementById("restart").onclick = async () => {
     update();
 };
 
+document.getElementById("copyPGN").addEventListener("click", async () => {
+    try {
+        const response = await fetch("http://127.0.0.1:8000/api/copyPGN", { method: "POST" });
+        const data = await response.json();
+        const pgn = data.pgn;
+        await navigator.clipboard.writeText(pgn);
+    } catch (error) {
+        console.error("Failed to copy PGN:", error);
+        alert("Error: could not copy PGN.");
+    }
+});
+
+
 async function getLegalMovesForPiece(coord) {
     const res = await fetch("http://127.0.0.1:8000/api/legal_moves", {
         method: "POST",
