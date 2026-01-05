@@ -148,13 +148,18 @@ h1 {
     transform: translateX(24px);
 }
 
-#toggle-div {
+.lateral-bar {
     display: flex;
     align-items: center;
     gap: 20px;
     padding: 12px 18px;
     border-radius: 10px;
     color: white;
-    width: fit-content;
+    width: max-content;
     user-select: none;
+}
+
+#calc-res {
+    gap: 100px;
+    display: none;
 }

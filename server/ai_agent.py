@@ -86,25 +86,19 @@ class AIAgent:
     }
 
 
-    def play(self, board: chess.Board, depth: int) -> str:
+    def play(self, board: chess.Board, depth: int):
         new_depth = self.adjusted_depth(board, depth)
         start = time.time()
-        
+        self.simulated_moves = 0    
 
         # Opening book
         try:
             with chess.polyglot.open_reader("Titans.bin") as book:
                 entry = book.find(board)
                 print("Book move")
-                return entry.move.uci()
+                return entry.move.uci(), "book move"
         except:
             pass
-
-        # Final tables
-        tb_move = self.choose_tablebase_move(board, tb_path=SYZYGY_PATH)
-        if tb_move:
-            print("Playing tablebase move:", tb_move)
-            return tb_move.uci()
 
         best_score = -inf
         best_move = None
@@ -123,9 +117,9 @@ class AIAgent:
 
         execTime = time.time() - start
         print(f"AI simulated {self.simulated_moves} moves in {execTime:.3f}s and got a best score of {best_score} with a depth of {new_depth}")
-        self.simulated_moves = 0
-
-        return best_move.uci() if best_move else ""
+        
+        if best_move is not None:
+            return best_move.uci(), self.simulated_moves
 
     def negamax(self, board: chess.Board, depth: int, alpha: float, beta: float, color: int) -> float:
         if depth == 0:
@@ -201,7 +195,7 @@ class AIAgent:
         return score
 
     
-    def order_moves(self, board: chess.Board, moves):
+    def order_moves(self, board: chess.Board, moves: list[chess.Move]) -> list[chess.Move]:
         scored = []
 
         for move in moves:

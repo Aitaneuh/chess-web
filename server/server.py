@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import chess
 import chess.pgn
+import time
 
 from ai_agent import AIAgent
 
@@ -103,9 +104,13 @@ def is_checkmate():
 
 @app.route("/api/ai_play", methods=["POST"])
 def ai_play():
+    start_time = time.time()
     global board
-    move = ai_agent.play(board, depth=4)
-    return jsonify({"move": move})
+    result = ai_agent.play(board, depth=4)
+    if result:
+        move = result[0]
+        pos_calc = result[1]
+    return jsonify({"move": move, "calc_time": time.time() - start_time, "pos_calc": pos_calc})
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000, debug=True)

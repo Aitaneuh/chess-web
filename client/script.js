@@ -7,6 +7,8 @@ let lastMove = null;
 let checkmated = false;
 let inCheck = false;
 let againstAI = false;
+const resTimeVal = document.getElementById("resTimeVal");
+const resCountVal = document.getElementById("resCountVal");
 const statusLbl = document.getElementById("status")
 const pieces = {
     "P": "/client/pieces/wP.svg",
@@ -221,6 +223,8 @@ document.getElementById("restart").onclick = async () => {
     lastSelected = null;
     checkmated = false;
     available_moves = [];
+    resTimeVal.textContent = `-`;
+    resCountVal.textContent = `-`;
     update();
 };
 
@@ -289,12 +293,16 @@ if (againstAI) {
 
 toggleContainer.addEventListener("click", () => {
     againstAI = !againstAI;
+    document.getElementById("calc-res").style.display = againstAI ? "flex" : "none"
 
     toggleContainer.classList.toggle("active", againstAI);
 });
 
 
 async function AI_play() {
+    resTimeVal.textContent = `calculating...`;
+    resCountVal.textContent = `calculating...`;
+
     const ai_res = await fetch("http://127.0.0.1:8000/api/ai_play", { method: "POST" })
     const data = await ai_res.json();
 
@@ -312,6 +320,8 @@ async function AI_play() {
     lastMove = data.move.slice(2, 4);
     lastSelected = data.move.slice(0, 2);
     whiteToMove = !whiteToMove
+    resTimeVal.textContent = `${data.calc_time.toFixed(3)} s`;
+    resCountVal.textContent = data.pos_calc.toLocaleString("en-US");
 }
 
 update();
