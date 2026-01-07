@@ -7,7 +7,6 @@
     <title>Web Chess</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 </head>
 
 <body>
@@ -16,40 +15,28 @@
         <div id="dashBoard">
             <h1>Web Chess</h1>
             <div id="status">White to move</div>
+
             <div id="toggle-div" class="lateral-bar">
                 <div id="toggle-lbl">vs AI :</div>
                 <div class="toggle-container">
                     <div id="toggle" class="toggle"></div>
                 </div>
+                <button class="button" id="reset">Reset</button>
                 <button class="button" id="restart">Restart</button>
-                <button class="button" id="copyPGN">copy PGN</button>
             </div>
+
             <div id="ai-tab">
                 <div id="analysis" class="analysis-panel">
                     <h2>AI Analysis</h2>
-
                     <div id="calc-res">
-                        <div>
-                            <span class="stat-label">Time</span>
-                            <span id="resTimeVal" class="stat-value">-</span>
-                        </div>
-                        <div>
-                            <span class="stat-label">Nodes</span>
-                            <span id="resCountVal" class="stat-value">-</span>
+                        <div><span class="stat-label">Time</span><span id="resTimeVal" class="stat-value">-</span></div>
+                        <div><span class="stat-label">Nodes</span><span id="resCountVal" class="stat-value">-</span>
                         </div>
                     </div>
-
                     <div id="calc-info">
-                        <div>
-                            <span class="stat-label">Depth</span>
-                            <span id="depthVal" class="stat-value">-</span>
-                        </div>
-                        <div>
-                            <span class="stat-label">NPS</span>
-                            <span id="speedVal" class="stat-value">-</span>
-                        </div>
+                        <div><span class="stat-label">Depth</span><span id="depthVal" class="stat-value">-</span></div>
+                        <div><span class="stat-label">NPS</span><span id="speedVal" class="stat-value">-</span></div>
                     </div>
-
                     <table id="analysisTable">
                         <thead>
                             <tr>
@@ -58,16 +45,29 @@
                                 <th>Score</th>
                             </tr>
                         </thead>
-                        <tbody>
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
 
-
+            <div id="pgn-controls" class="pgn-bar">
+                <button class="button" id="loadFENbtn">Load FEN</button>
+                <button class="button" id="copyPGN">Copy PGN</button>
+            </div>
         </div>
     </div>
 
+    <div id="fenModal" class="modal">
+        <div class="modal-content">
+            <h3>Load FEN</h3>
+            <textarea id="FENInput"
+                placeholder="e.g. rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"></textarea>
+            <div class="modal-actions">
+                <button class="button" id="submitFEN">Import</button>
+                <button class="button" id="closeModal">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="script.js"></script>
 </body>

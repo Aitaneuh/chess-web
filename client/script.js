@@ -7,6 +7,7 @@ let lastMove = null;
 let checkmated = false;
 let inCheck = false;
 let againstAI = false;
+let lastPos = ""
 const resTimeVal = document.getElementById("resTimeVal");
 const resCountVal = document.getElementById("resCountVal");
 const depthVal = document.getElementById("depthVal");
@@ -217,8 +218,9 @@ async function update() {
     showMoveDots(available_moves);
 }
 
-document.getElementById("restart").onclick = async () => {
+document.getElementById("reset").onclick = async () => {
     await fetch("http://127.0.0.1:8000/api/restart", { method: "POST" });
+    lastPos = ""
     selected = null
     whiteToMove = true;
     lastMove = null;
@@ -233,17 +235,142 @@ document.getElementById("restart").onclick = async () => {
     update();
 };
 
+document.getElementById("restart").onclick = async () => {
+    await fetch("http://127.0.0.1:8000/api/restart", { method: "POST" });
+    if (lastPos != "") {
+        const response = await fetch("http://127.0.0.1:8000/api/loadFEN", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ fen: lastPos })
+        });
+    }
+    selected = null
+    whiteToMove = true;
+    lastMove = null;
+    lastSelected = null;
+    checkmated = false;
+    available_moves = [];
+    resTimeVal.textContent = `-`;
+    resCountVal.textContent = `-`;
+    depthVal.textContent = `-`;
+    speedVal.textContent = `-`;
+    clearAnalysisTable();
+    update();
+};
+
+// --- MODAL ELEMENT REFERENCES ---
+const fenModal = document.getElementById("fenModal");
+const openModalBtn = document.getElementById("loadFENbtn");
+const closeModalBtn = document.getElementById("closeModal");
+const submitFENBtn = document.getElementById("submitFEN");
+const fenInput = document.getElementById("FENInput");
+
 document.getElementById("copyPGN").addEventListener("click", async () => {
     try {
         const response = await fetch("http://127.0.0.1:8000/api/copyPGN", { method: "POST" });
         const data = await response.json();
         const pgn = data.pgn;
+
         await navigator.clipboard.writeText(pgn);
+
+        // Trigger the success notification
+        showToast("PGN successfully copied!");
+
     } catch (error) {
         console.error("Failed to copy PGN:", error);
-        alert("Error: could not copy PGN.");
+        showToast("Error: could not copy PGN.", true); // Optional error state
     }
 });
+
+// 1. OPEN MODAL
+openModalBtn.addEventListener("click", () => {
+    fenModal.style.display = "block";
+    fenInput.focus(); // Auto-focus the textarea for convenience
+});
+
+// 2. CLOSE MODAL (Cancel button)
+closeModalBtn.addEventListener("click", () => {
+    fenModal.style.display = "none";
+    fenInput.value = ""; // Clear input on cancel
+});
+
+// 3. CLOSE MODAL (Clicking outside the box)
+window.addEventListener("click", (event) => {
+    if (event.target === fenModal) {
+        fenModal.style.display = "none";
+        fenInput.value = "";
+    }
+});
+
+document.getElementById("submitFEN").addEventListener("click", async () => {
+    const fenInput = document.getElementById("FENInput"); // The textarea in the modal
+    const fenString = fenInput.value.trim();
+
+    if (!fenString) {
+        showToast("Please enter a FEN string", true);
+        return;
+    }
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/api/loadFEN", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ fen: fenString })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+
+            // 1. Close the modal
+            document.getElementById("fenModal").style.display = "none";
+
+            // 2. Clear the input
+            lastPos = fenInput.value
+            fenInput.value = "";
+            selected = null
+            whiteToMove = true;
+            lastMove = null;
+            lastSelected = null;
+            checkmated = false;
+            available_moves = [];
+            resTimeVal.textContent = `-`;
+            resCountVal.textContent = `-`;
+            depthVal.textContent = `-`;
+            speedVal.textContent = `-`;
+            clearAnalysisTable();
+            update();
+
+            showToast("Position loaded successfully!");
+        } else {
+            showToast("Invalid FEN string", true);
+        }
+    } catch (error) {
+        console.error("Failed to load FEN:", error);
+        showToast("Server error: Could not load position", true);
+    }
+});
+
+// Helper function for the 3-second popup
+function showToast(message, isError = false) {
+    // Create the element
+    const toast = document.createElement("div");
+    toast.className = "toast-notification";
+    if (isError) toast.style.borderLeft = "4px solid #f87171";
+    toast.textContent = message;
+
+    // Add to body
+    document.body.appendChild(toast);
+
+    // Remove after 3 seconds (allowing for fade-out)
+    setTimeout(() => {
+        toast.classList.add("fade-out");
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
+}
 
 
 async function getLegalMovesForPiece(coord) {
@@ -287,7 +414,15 @@ function showMoveDots(moves) {
 
 function updateStatus() {
     if (!checkmated) { statusLbl.innerText = whiteToMove ? "White to move" : "Black to move" }
-    else { statusLbl.innerText = whiteToMove ? "Black won the match" : "White won the match" }
+    else {
+        if (whiteToMove) {
+            statusLbl.innerText = "Black won the match";
+            showToast("Black won the match!", true);
+        } else {
+            statusLbl.innerText = "White won the match";
+            showToast("White won the match!");
+        }
+    }
 }
 
 const toggleContainer = document.querySelector(".toggle-container");
@@ -327,7 +462,7 @@ async function AI_play() {
     lastMove = data.move.slice(2, 4);
     lastSelected = data.move.slice(0, 2);
     whiteToMove = !whiteToMove
-    
+
     if (data.top_moves != "book move") {
         renderAnalysisTable(data.top_moves);
     }
@@ -357,11 +492,12 @@ function renderAnalysisTable(moves) {
         moveTd.textContent = move;
 
         const scoreTd = document.createElement("td");
-        let display_score = (score/100).toFixed(2);
-        if (Number(display_score) < -990)
-            scoreTd.textContent = `Mate in ${-1000 - Number(display_score).toFixed(0)}`
-        else if (Number(display_score) > 990) {
-            scoreTd.textContent = `Mate in ${1000 - Number(display_score).toFixed(0)}`
+        let display_score = (score / 100).toFixed(2);
+        let calc_score = Number(score.toFixed(0));
+        if (calc_score < -99990)
+            scoreTd.textContent = `Mate in ${(-100000 - calc_score) * -1}`
+        else if (calc_score > 99990) {
+            scoreTd.textContent = `Mate in ${100000 - calc_score}`
         } else {
             scoreTd.textContent = display_score;
         }

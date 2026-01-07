@@ -83,6 +83,38 @@ def copyPGN():
 
     return jsonify({"success": True, "pgn": pgn_string})
 
+@app.route("/api/loadFEN", methods=["POST"])
+def loadFEN():
+    global board
+    
+    data = request.get_json()
+    fen_string = data.get("fen", "").strip()
+
+    if not fen_string:
+        return jsonify({"error": "No FEN provided"}), 400
+
+    try:
+        # Create a new board object to validate the FEN
+        # The chess.Board constructor raises ValueError if the FEN is syntactically wrong
+        new_board = chess.Board(fen_string)
+        
+        # Check if the position is actually legal (e.g., not two kings, etc.)
+        if new_board.is_valid():
+            board = new_board
+            return jsonify({
+                "status": "success",
+                "message": "Board updated",
+                "fen": board.fen()
+            }), 200
+        else:
+            return jsonify({"error": "Illegal chess position"}), 400
+
+    except ValueError:
+        # This happens if the FEN string format is completely broken
+        return jsonify({"error": "Invalid FEN format"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/legal_moves", methods=["POST"])
 def legal_moves():
     global board
