@@ -112,7 +112,8 @@ def ai_play():
     if result:
         move = result[0]
         pos_calc = result[1]
-    return jsonify({"move": move, "calc_time": time.time() - start_time, "pos_calc": pos_calc})
+        top_moves = result[2]
+    return jsonify({"move": move, "calc_time": time.time() - start_time, "pos_calc": pos_calc, "top_moves": top_moves})
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000, debug=True)

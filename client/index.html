@@ -24,16 +24,35 @@
                 <button class="button" id="restart">Restart</button>
                 <button class="button" id="copyPGN">copy PGN</button>
             </div>
-            <div id="calc-res" class="lateral-bar">
-                <div>
-                    <div id="resTimeLbl">Calculation time:</div>
-                    <div id="resTimeVal">-</div>
-                </div>
-                <div>
-                    <div id="resCountLbl">Position calculated:</div>
-                    <div id="resCountVal">-</div>
+            <div id="ai-tab">
+
+                <div id="analysis" class="analysis-panel">
+                    <h2>AI Analysis</h2>
+                    <div id="calc-res" class="lateral-bar">
+                        <div>
+                            <div id="resTimeLbl">Calculation time:</div>
+                            <div id="resTimeVal">-</div>
+                        </div>
+                        <div>
+                            <div id="resCountLbl">Position calculated:</div>
+                            <div id="resCountVal">-</div>
+                        </div>
+                    </div>
+                    <table id="analysisTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Move</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
+
 
         </div>
     </div>

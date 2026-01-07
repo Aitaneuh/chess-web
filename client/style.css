@@ -159,7 +159,56 @@ h1 {
     user-select: none;
 }
 
+#ai-tab {
+    display: none;
+}
+
 #calc-res {
     gap: 100px;
-    display: none;
+    display: flex;
+}
+
+.analysis-panel {
+    margin-top: 20px;
+}
+
+.analysis-panel h2 {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    color: #e5c591;
+}
+
+#analysisTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+#analysisTable th,
+#analysisTable td {
+    padding: 6px 8px;
+    text-align: center;
+}
+
+#analysisTable thead {
+    border-bottom: 1px solid #444;
+}
+
+#analysisTable tbody tr:nth-child(1) {
+    background-color: #EDD6B0;
+    color: #201E1D;
+    font-weight: bold;
+}
+
+#analysisTable tbody tr:not(:first-child):hover {
+    background-color: #2a2726;
+}
+
+.score-positive {
+    color: #4ade80;
+}
+
+.score-negative {
+    color: #f87171;
 }

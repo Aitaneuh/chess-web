@@ -96,7 +96,7 @@ class AIAgent:
             with chess.polyglot.open_reader("Titans.bin") as book:
                 entry = book.find(board)
                 print("Book move")
-                return entry.move.uci(), "book move"
+                return entry.move.uci(), "book move", "book move"
         except:
             pass
 
@@ -105,21 +105,31 @@ class AIAgent:
 
         analysis_board = board.copy()
         ordered_moves = self.order_moves(analysis_board, list(analysis_board.legal_moves))
+
+        scored_moves: list[tuple[chess.Move, float]] = []
         for move in ordered_moves:
 
             analysis_board.push(move)
             score = -self.negamax(analysis_board, new_depth - 1, -inf, inf, 1 if analysis_board.turn else -1)
             analysis_board.pop()
 
+            scored_moves.append((move, score))
             if score > best_score or (score == best_score and random.random() < 0.2):
                 best_score = score
                 best_move = move
 
         execTime = time.time() - start
         print(f"AI simulated {self.simulated_moves} moves in {execTime:.3f}s and got a best score of {best_score} with a depth of {new_depth}")
+
+        scored_moves.sort(key=lambda x: x[1], reverse=True)
+
+        top_moves = [
+            (move.uci(), score)
+            for move, score in scored_moves[:10]
+        ]
         
         if best_move is not None:
-            return best_move.uci(), self.simulated_moves
+            return best_move.uci(), self.simulated_moves, top_moves
 
     def negamax(self, board: chess.Board, depth: int, alpha: float, beta: float, color: int) -> float:
         if depth == 0:

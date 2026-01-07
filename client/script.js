@@ -225,6 +225,7 @@ document.getElementById("restart").onclick = async () => {
     available_moves = [];
     resTimeVal.textContent = `-`;
     resCountVal.textContent = `-`;
+    clearAnalysisTable();
     update();
 };
 
@@ -293,7 +294,7 @@ if (againstAI) {
 
 toggleContainer.addEventListener("click", () => {
     againstAI = !againstAI;
-    document.getElementById("calc-res").style.display = againstAI ? "flex" : "none"
+    document.getElementById("ai-tab").style.display = againstAI ? "block" : "none"
 
     toggleContainer.classList.toggle("active", againstAI);
 });
@@ -320,8 +321,48 @@ async function AI_play() {
     lastMove = data.move.slice(2, 4);
     lastSelected = data.move.slice(0, 2);
     whiteToMove = !whiteToMove
+    
+    if (data.top_moves != "book move") {
+        renderAnalysisTable(data.top_moves);
+    }
+
     resTimeVal.textContent = `${data.calc_time.toFixed(3)} s`;
     resCountVal.textContent = data.pos_calc.toLocaleString("en-US");
+}
+
+function renderAnalysisTable(moves) {
+    const tbody = document.querySelector("#analysisTable tbody");
+    tbody.innerHTML = "";
+
+    moves.forEach((entry, index) => {
+        const [move, score] = entry;
+
+        const tr = document.createElement("tr");
+
+        const rankTd = document.createElement("td");
+        rankTd.textContent = index + 1;
+
+        const moveTd = document.createElement("td");
+        moveTd.textContent = move;
+
+        const scoreTd = document.createElement("td");
+        scoreTd.textContent = score.toFixed(2);
+
+        if (score > 0) scoreTd.classList.add("score-positive");
+        if (score < 0) scoreTd.classList.add("score-negative");
+
+        tr.appendChild(rankTd);
+        tr.appendChild(moveTd);
+        tr.appendChild(scoreTd);
+
+        tbody.appendChild(tr);
+    });
+}
+
+function clearAnalysisTable() {
+    const tbody = document.querySelector("#analysisTable tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
 }
 
 update();
