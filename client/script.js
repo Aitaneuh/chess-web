@@ -9,6 +9,8 @@ let inCheck = false;
 let againstAI = false;
 const resTimeVal = document.getElementById("resTimeVal");
 const resCountVal = document.getElementById("resCountVal");
+const depthVal = document.getElementById("depthVal");
+const speedVal = document.getElementById("speedVal");
 const statusLbl = document.getElementById("status")
 const pieces = {
     "P": "/client/pieces/wP.svg",
@@ -225,6 +227,8 @@ document.getElementById("restart").onclick = async () => {
     available_moves = [];
     resTimeVal.textContent = `-`;
     resCountVal.textContent = `-`;
+    depthVal.textContent = `-`;
+    speedVal.textContent = `-`;
     clearAnalysisTable();
     update();
 };
@@ -303,6 +307,8 @@ toggleContainer.addEventListener("click", () => {
 async function AI_play() {
     resTimeVal.textContent = `calculating...`;
     resCountVal.textContent = `calculating...`;
+    depthVal.textContent = `calculating...`;
+    speedVal.textContent = `calculating...`;
 
     const ai_res = await fetch("http://127.0.0.1:8000/api/ai_play", { method: "POST" })
     const data = await ai_res.json();
@@ -328,6 +334,11 @@ async function AI_play() {
 
     resTimeVal.textContent = `${data.calc_time.toFixed(3)} s`;
     resCountVal.textContent = data.pos_calc.toLocaleString("en-US");
+    depthVal.textContent = data.depth;
+    if (data.pos_calc != "book") {
+        let fixedNPS = (data.pos_calc / data.calc_time).toFixed(0)
+        speedVal.textContent = `${Number(fixedNPS).toLocaleString("en-US")}`;
+    } else { speedVal.textContent = "book" }
 }
 
 function renderAnalysisTable(moves) {
@@ -346,7 +357,15 @@ function renderAnalysisTable(moves) {
         moveTd.textContent = move;
 
         const scoreTd = document.createElement("td");
-        scoreTd.textContent = score.toFixed(2);
+        let display_score = (score/100).toFixed(2);
+        if (Number(display_score) < -990)
+            scoreTd.textContent = `Mate in ${-1000 - Number(display_score).toFixed(0)}`
+        else if (Number(display_score) > 990) {
+            scoreTd.textContent = `Mate in ${1000 - Number(display_score).toFixed(0)}`
+        } else {
+            scoreTd.textContent = display_score;
+        }
+
 
         if (score > 0) scoreTd.classList.add("score-positive");
         if (score < 0) scoreTd.classList.add("score-negative");

@@ -108,12 +108,13 @@ def ai_play():
     if board.is_checkmate():
         return jsonify({"move": "", "calc_time": "-", "pos_calc": "-"})
     start_time = time.time()
-    result = ai_agent.play(board, depth=4)
+    result = ai_agent.play(board, depth=5)
     if result:
         move = result[0]
         pos_calc = result[1]
         top_moves = result[2]
-    return jsonify({"move": move, "calc_time": time.time() - start_time, "pos_calc": pos_calc, "top_moves": top_moves})
+        depth = result[3]
+    return jsonify({"move": move, "calc_time": time.time() - start_time, "pos_calc": pos_calc, "top_moves": top_moves, "depth": depth})
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000, debug=True)

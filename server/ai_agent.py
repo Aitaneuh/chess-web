@@ -1,336 +1,362 @@
 from math import inf
-import random
 import time
 import chess
 import chess.polyglot
-import chess.syzygy
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
-SYZYGY_PATH = "/syzygy"
+# --- PIECE-SQUARE TABLES (PST) ---
+# These replace complex evaluation logic. They define where pieces "like" to be.
+# (Values are for White; the code mirrors them for Black automatically)
+PST = {
+    chess.PAWN: [
+        0, 0, 0, 0, 0, 0, 0, 0,
+        50, 50, 50, 50, 50, 50, 50, 50,
+        10, 10, 20, 30, 30, 20, 10, 10,
+        5, 5, 10, 25, 25, 10, 5, 5,
+        0, 0, 0, 20, 20, 0, 0, 0,
+        5, -5, -10, 0, 0, -10, -5, 5,
+        5, 10, 10, -20, -20, 10, 10, 5,
+        0, 0, 0, 0, 0, 0, 0, 0
+    ],
+    chess.KNIGHT: [
+        -50, -40, -30, -30, -30, -30, -40, -50,
+        -40, -20, 0, 0, 0, 0, -20, -40,
+        -30, 0, 10, 15, 15, 10, 0, -30,
+        -30, 5, 15, 20, 20, 15, 5, -30,
+        -30, 0, 15, 20, 20, 15, 0, -30,
+        -30, 5, 10, 15, 15, 10, 5, -30,
+        -40, -20, 0, 5, 5, 0, -20, -40,
+        -50, -40, -30, -30, -30, -30, -40, -50
+    ],
+    chess.BISHOP: [
+        -20, -10, -10, -10, -10, -10, -10, -20,
+        -10, 0, 0, 0, 0, 0, 0, -10,
+        -10, 0, 5, 10, 10, 5, 0, -10,
+        -10, 5, 5, 10, 10, 5, 5, -10,
+        -10, 0, 10, 10, 10, 10, 0, -10,
+        -10, 10, 10, 10, 10, 10, 10, -10,
+        -10, 5, 0, 0, 0, 0, 5, -10,
+        -20, -10, -10, -10, -10, -10, -10, -20
+    ],
+    chess.ROOK: [
+        0, 0, 0, 0, 0, 0, 0, 0,
+        5, 10, 10, 10, 10, 10, 10, 5,
+        -5, 0, 0, 0, 0, 0, 0, -5,
+        -5, 0, 0, 0, 0, 0, 0, -5,
+        -5, 0, 0, 0, 0, 0, 0, -5,
+        -5, 0, 0, 0, 0, 0, 0, -5,
+        -5, 0, 0, 0, 0, 0, 0, -5,
+        0, 0, 0, 5, 5, 0, 0, 0
+    ],
+    chess.QUEEN: [
+        -20, -10, -10, -5, -5, -10, -10, -20,
+        -10, 0, 0, 0, 0, 0, 0, -10,
+        -10, 0, 5, 5, 5, 5, 0, -10,
+        -5, 0, 5, 5, 5, 5, 0, -5,
+        0, 0, 5, 5, 5, 5, 0, -5,
+        -10, 5, 5, 5, 5, 5, 0, -10,
+        -10, 0, 5, 0, 0, 0, 0, -10,
+        -20, -10, -10, -5, -5, -10, -10, -20
+    ],
+    chess.KING: [
+        -30, -40, -40, -50, -50, -40, -40, -30,
+        -30, -40, -40, -50, -50, -40, -40, -30,
+        -30, -40, -40, -50, -50, -40, -40, -30,
+        -30, -40, -40, -50, -50, -40, -40, -30,
+        -20, -30, -30, -40, -40, -30, -30, -20,
+        -10, -20, -20, -20, -20, -20, -20, -10,
+        20, 20, 0, 0, 0, 0, 20, 20,
+        20, 30, 10, 0, 0, 10, 30, 20
+    ]
+}
 
 class AIAgent:
     def __init__(self):
         self.simulated_moves = 0
+        self.tt = {}
+        self.killer_moves = [[None, None] for _ in range(128)]  # max ply
+        self.history = {}
 
-    PIECE_VALUES = {
-        chess.PAWN: 100,
-        chess.KNIGHT: 300,
-        chess.BISHOP: 300,
-        chess.ROOK: 500,
-        chess.QUEEN: 900,
-        chess.KING: 9000
-    }
+        self.PIECE_VALUES = {
+            chess.PAWN: 100,
+            chess.KNIGHT: 320,
+            chess.BISHOP: 330,
+            chess.ROOK: 500,
+            chess.QUEEN: 900,
+            chess.KING: 20000
+        }
 
-    # Piece-Square Tables (white perspective)
-    PST = {
-        chess.PAWN: [
-            0,  0,  0,  0,  0,  0,  0,  0,
-            50, 50, 50, 50, 50, 50, 50, 50,
-            10, 10, 20, 30, 30, 20, 10, 10,
-            5,  5, 10, 25, 25, 10,  5,  5,
-            0,  0,  0, 20, 20,  0,  0,  0,
-            5, -5,-10,  0,  0,-10, -5,  5,
-            5, 10, 10,-20,-20, 10, 10,  5,
-            0,  0,  0,  0,  0,  0,  0,  0
-        ],
-        chess.KNIGHT: [
-            -50,-40,-30,-30,-30,-30,-40,-50,
-            -40,-20,  0,  0,  0,  0,-20,-40,
-            -30,  0, 10, 15, 15, 10,  0,-30,
-            -30,  5, 15, 20, 20, 15,  5,-30,
-            -30,  0, 15, 20, 20, 15,  0,-30,
-            -30,  5, 10, 15, 15, 10,  5,-30,
-            -40,-20,  0,  5,  5,  0,-20,-40,
-            -50,-40,-30,-30,-30,-30,-40,-50
-        ],
-        chess.BISHOP: [
-            -20,-10,-10,-10,-10,-10,-10,-20,
-            -10,  5,  0,  0,  0,  0,  5,-10,
-            -10, 10, 10, 10, 10, 10, 10,-10,
-            -10,  0, 10, 10, 10, 10,  0,-10,
-            -10,  5,  5, 10, 10,  5,  5,-10,
-            -10,  0,  5, 10, 10,  5,  0,-10,
-            -10,  0,  0,  0,  0,  0,  0,-10,
-            -20,-10,-10,-10,-10,-10,-10,-20
-        ],
-        chess.ROOK: [
-            0,  0,  5, 10, 10,  5,  0,  0,
-            -5,  0,  0,  0,  0,  0,  0, -5,
-            -5,  0,  0,  0,  0,  0,  0, -5,
-            -5,  0,  0,  0,  0,  0,  0, -5,
-            -5,  0,  0,  0,  0,  0,  0, -5,
-            -5,  0,  0,  0,  0,  0,  0, -5,
-            5, 10, 10, 10, 10, 10, 10,  5,
-            0,  0,  5, 10, 10,  5,  0,  0
-        ],
-        chess.QUEEN: [
-            -20,-10,-10, -5, -5,-10,-10,-20,
-            -10,  0,  5,  0,  0,  5,  0,-10,
-            -10,  5,  5,  5,  5,  5,  5,-10,
-             -5,  0,  5,  5,  5,  5,  0, -5,
-              0,  0,  5,  5,  5,  5,  0, -5,
-            -10,  5,  5,  5,  5,  5,  5,-10,
-            -10,  0,  5,  0,  0,  5,  0,-10,
-            -20,-10,-10, -5, -5,-10,-10,-20
-        ],
-        chess.KING: [
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -30,-40,-40,-50,-50,-40,-40,-30,
-            -20,-30,-30,-40,-40,-30,-30,-20,
-            -10,-20,-20,-20,-20,-20,-20,-10,
-            20, 20,  0,  0,  0,  0, 20, 20,
-            20, 30, 10,  0,  0, 10, 30, 20
-        ]
-    }
-
-
-    def play(self, board: chess.Board, depth: int):
-        new_depth = self.adjusted_depth(board, depth)
-        start = time.time()
-        self.simulated_moves = 0    
-
-        # Opening book
+    def play(self, origin_board: chess.Board, depth: int):
+        board = origin_board.copy()
+        
+        # 1. Opening Book
         try:
             with chess.polyglot.open_reader("Titans.bin") as book:
                 entry = book.find(board)
-                print("Book move")
-                return entry.move.uci(), "book move", "book move"
+                return entry.move.uci(), "book", [], depth
         except:
             pass
 
+        # Adjust depth (search deeper in endgames)
+        new_depth = self.adjusted_depth(board, depth)
+        
+        start = time.time()
+        self.simulated_moves = 0
+        
         best_score = -inf
         best_move = None
+        best_top_moves = []
 
-        analysis_board = board.copy()
-        ordered_moves = self.order_moves(analysis_board, list(analysis_board.legal_moves))
+        # 2. Iterative Deepening
+        for current_depth in range(1, new_depth + 1):
+            
+            # Aspiration Window
+            if current_depth > 1:
+                alpha = best_score - 50
+                beta  = best_score + 50
+            else:
+                alpha, beta = -inf, inf
 
-        scored_moves: list[tuple[chess.Move, float]] = []
-        for move in ordered_moves:
+            score, move, top_moves = self.negamax_root(
+                board, current_depth, alpha, beta
+            )
 
-            analysis_board.push(move)
-            score = -self.negamax(analysis_board, new_depth - 1, -inf, inf, 1 if analysis_board.turn else -1)
-            analysis_board.pop()
+            # If score fell outside window, research with full window
+            if score <= alpha or score >= beta:
+                score, move, top_moves = self.negamax_root(
+                    board, current_depth, -inf, inf
+                )
 
-            scored_moves.append((move, score))
-            if score > best_score or (score == best_score and random.random() < 0.2):
-                best_score = score
-                best_move = move
+            best_score = score
+            best_move = move
+            best_top_moves = top_moves
 
-        execTime = time.time() - start
-        print(f"AI simulated {self.simulated_moves} moves in {execTime:.3f}s and got a best score of {best_score} with a depth of {new_depth}")
+        exec_time = time.time() - start
+        print(
+            f"AI simulated {self.simulated_moves} moves in "
+            f"{exec_time:.3f}s (best score {best_score}, depth {new_depth})"
+        )
 
-        scored_moves.sort(key=lambda x: x[1], reverse=True)
-
-        top_moves = [
-            (move.uci(), score)
-            for move, score in scored_moves[:10]
-        ]
+        if best_move is None:
+            return None, self.simulated_moves, best_top_moves, new_depth
         
-        if best_move is not None:
-            return best_move.uci(), self.simulated_moves, top_moves
+        return best_move.uci(), self.simulated_moves, best_top_moves, new_depth
 
-    def negamax(self, board: chess.Board, depth: int, alpha: float, beta: float, color: int) -> float:
-        if depth == 0:
-            return color * self.evaluate(board)
+    def negamax(self, board, depth, alpha, beta, ply):
+        self.simulated_moves += 1
+        alpha_orig = alpha
 
-        if board.is_checkmate():
-            return -1_000_000 + (5 - depth)
-        if board.is_stalemate():
-            return 0
+        # 1. Transposition Table Lookup
+        key = board._transposition_key()
+        if key in self.tt:
+            entry = self.tt[key]
+            if entry["depth"] >= depth:
+                if entry["flag"] == "EXACT":
+                    return entry["value"]
+                elif entry["flag"] == "LOWER":
+                    alpha = max(alpha, entry["value"])
+                elif entry["flag"] == "UPPER":
+                    beta = min(beta, entry["value"])
+                if alpha >= beta:
+                    return entry["value"]
+        
+        # 2. Check for game over or Quiescence
+        if depth <= 0:
+            return self.quiescence(board, alpha, beta)
 
+        # --- OPTIMIZATION: SINGLE MOVE GENERATION ---
+        moves = list(board.legal_moves)
+
+        if not moves:
+            # If no moves, it's either checkmate or stalemate
+            if board.is_check():
+                return -100000 + ply  # Mated
+            else:
+                return 0  # Stalemate
+
+        # 3. Search
+        # Order moves to search best ones first
+        ordered_moves = self.order_moves(board, moves, ply)
         best_value = -inf
 
-        ordered_moves = self.order_moves(board, list(board.legal_moves))
         for move in ordered_moves:
-            self.simulated_moves += 1
-
             board.push(move)
-            score = -self.negamax(board, depth - 1, -beta, -alpha, -color)
+            score = -self.negamax(board, depth - 1, -beta, -alpha, ply + 1)
             board.pop()
 
             if score > best_value:
                 best_value = score
-
+            
             alpha = max(alpha, score)
+
             if alpha >= beta:
+                # Alpha-Beta Cutoff
+                # Killer Move Heuristic
+                killers = self.killer_moves[ply]
+                if move != killers[0]:
+                    killers[1] = killers[0]
+                    killers[0] = move
+                
+                # History Heuristic
+                self.history[(move.from_square, move.to_square)] = \
+                    self.history.get((move.from_square, move.to_square), 0) + depth * depth
                 break
 
+        # 4. Store in Transposition Table
+        flag = "EXACT"
+        if best_value <= alpha_orig:
+            flag = "UPPER"
+        elif best_value >= beta:
+            flag = "LOWER"
+
+        self.tt[key] = {
+            "value": best_value,
+            "depth": depth,
+            "flag": flag
+        }
+
         return best_value
+
+    def negamax_root(self, board, depth, alpha, beta):
+        best_score = -inf
+        best_move = None
+        move_scores = []
+
+        # 1. Get moves (sorted by your order_moves function)
+        moves = self.order_moves(board, list(board.legal_moves), ply=0)
         
-    def evaluate(self, board: chess.Board) -> float:
+        # 2. Settings
+        full_depth_count = 3  # How many moves to search at 100% depth
+        reduction = 2         # How many levels of depth to "cut" for the others
+
+        for i, move in enumerate(moves):
+            board.push(move)
+            
+            if board.is_checkmate():
+                board.pop()
+                return 100000, move, [(move.uci(), 100000)]
+
+            # --- HYBRID DEPTH LOGIC ---
+            if i < full_depth_count:
+                # Search the best moves fully to get exact scores
+                score = -self.negamax(board, depth - 1, -inf, inf, ply=1)
+            else:
+                # Search the rest at a lower depth to get a "fast estimate"
+                # We use max(1, ...) to ensure depth doesn't go below 1
+                estimate_depth = max(1, depth - 1 - reduction)
+                score = -self.negamax(board, estimate_depth, -inf, inf, ply=1)
+            
+            board.pop()
+            move_scores.append((move, score))
+
+            if score > best_score:
+                best_score = score
+                best_move = move
+
+        # Sort results for the UI
+        move_scores.sort(key=lambda x: x[1], reverse=True)
+        top_moves = [(m.uci(), s) for m, s in move_scores[:10]]
+        
+        return best_score, best_move, top_moves
+
+    def evaluate(self, board: chess.Board) -> int:
+        """
+        Fast evaluation using Piece-Square Tables (PST).
+        """
         score = 0
+        # Iterate over the piece map directly (fastest method in python-chess)
+        for square, piece in board.piece_map().items():
+            val = self.PIECE_VALUES[piece.piece_type]
+            
+            if piece.color == chess.WHITE:
+                # Add material + positional bonus
+                score += val + PST[piece.piece_type][chess.square_mirror(square)]
+            else:
+                # Subtract material + positional bonus (using mirrored square for black)
+                score -= val + PST[piece.piece_type][square]
 
-        # Material + PST
-        for piece_type in self.PIECE_VALUES:
-            base_value = self.PIECE_VALUES[piece_type]
+        return score if board.turn == chess.WHITE else -score
 
-            # White pieces
-            for square in board.pieces(piece_type, chess.WHITE):
-                score += base_value
-                score += self.PST[piece_type][square]
+    def quiescence(self, board, alpha, beta):
+        """
+        Search until the position is 'quiet' (no captures) to avoid horizon effect.
+        """
+        stand_pat = self.evaluate(board)
+        if stand_pat >= beta:
+            return beta
+        if alpha < stand_pat:
+            alpha = stand_pat
 
-            # Black pieces (mirror PST)
-            for square in board.pieces(piece_type, chess.BLACK):
-                score -= base_value
-                score -= self.PST[piece_type][chess.square_mirror(square)]
+        # Generate only captures (Optimization)
+        captures = board.generate_legal_moves(
+            chess.BB_ALL, 
+            board.occupied_co[not board.turn]
+        )
 
-        # Penalize undefended pieces attacked
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if not piece:
-                continue
+        # MVV-LVA Sort for captures
+        ordered_captures = []
+        for m in captures:
+            victim = board.piece_at(m.to_square)
+            val = self.PIECE_VALUES[victim.piece_type] if victim else 0
+            ordered_captures.append((val, m))
+        
+        ordered_captures.sort(key=lambda x: x[0], reverse=True)
 
-            attackers = board.attackers(not piece.color, square)
-            defenders = board.attackers(piece.color, square)
+        for _, move in ordered_captures:
+            board.push(move)
+            score = -self.quiescence(board, -beta, -alpha)
+            board.pop()
 
-            if attackers and not defenders:
-                penalty = self.PIECE_VALUES[piece.piece_type] // 2
-                if piece.color == chess.WHITE:
-                    score -= penalty
-                else:
-                    score += penalty
+            if score >= beta:
+                return beta
+            if score > alpha:
+                alpha = score
 
-        if self.is_endgame(board):
-            wk = board.king(chess.WHITE)
-            bk = board.king(chess.BLACK)
+        return alpha
 
-            score += 10 * (3.5 - abs(chess.square_file(wk) - 3.5)) # type: ignore
-            score += 10 * (3.5 - abs(chess.square_rank(wk) - 3.5)) # type: ignore
-
-            score -= 10 * (3.5 - abs(chess.square_file(bk) - 3.5)) # type: ignore
-            score -= 10 * (3.5 - abs(chess.square_rank(bk) - 3.5)) # type: ignore
-
-        return score
-
-    
-    def order_moves(self, board: chess.Board, moves: list[chess.Move]) -> list[chess.Move]:
+    def order_moves(self, board, moves, ply):
         scored = []
+        
+        if ply >= 128: ply = 127
+        killers = self.killer_moves[ply]
 
         for move in moves:
             score = 0
-
-            # 1. Prioritize captures (MVV-LVA like you do)
+            
+            # 1. MVV-LVA (Most Valuable Victim - Least Valuable Attacker)
             if board.is_capture(move):
                 victim = board.piece_at(move.to_square)
-                attacker = board.piece_at(move.from_square)
+                if victim:
+                    attacker = board.piece_at(move.from_square)
+                    score += 10000 + self.PIECE_VALUES[victim.piece_type] - (self.PIECE_VALUES[attacker.piece_type] // 10)
+                elif board.is_en_passant(move):
+                    score += 10100
 
-                if victim and attacker:
-                    score += 10_000 + (
-                        self.PIECE_VALUES[victim.piece_type] -
-                        self.PIECE_VALUES[attacker.piece_type]
-                    )
+            # 2. Killer Moves
+            if move == killers[0]:
+                score += 9000
+            elif move == killers[1]:
+                score += 8000
 
-            else:
-                # 2. Castling bonus
-                if board.is_castling(move):
-                    score += 6_000  # small but important priority
-
-                # 3. Development bonus (only in early game)
-                if board.fullmove_number <= 10:
-                    piece = board.piece_at(move.from_square)
-                    if piece and piece.piece_type in (chess.KNIGHT, chess.BISHOP):
-                        score += 2_000
-
-                # 4. Centralization (your original idea but stronger)
-                to = move.to_square
-                file = chess.square_file(to)
-                rank = chess.square_rank(to)
-                score += 1_000 - abs(file - 3.5) - abs(rank - 3.5)
+            # 3. History Heuristic
+            score += self.history.get((move.from_square, move.to_square), 0)
 
             scored.append((score, move))
 
         scored.sort(reverse=True, key=lambda x: x[0])
         return [m for _, m in scored]
 
-
-
-    # DISCLAIMER : this syzygy function was not made by me
-    def choose_tablebase_move(self, board: chess.Board, tb_path: str = SYZYGY_PATH) -> Optional[chess.Move]:
-        """
-        If the current position (or its next moves) is covered by syzygy tablebases,
-        pick the best move according to WDL/DTZ probe.
-        Returns a chess.Move or None if no tablebase info is available.
-        """
-        try:
-            with chess.syzygy.open_tablebase(tb_path) as tb:
-                best_win: Optional[Tuple[int, chess.Move]] = None   # (dtz, move) smallest dtz is best
-                best_draw: Optional[chess.Move] = None
-                best_loss: Optional[Tuple[int, chess.Move]] = None  # (dtz, move) largest dtz is best
-
-                # iterate all legal moves and probe resulting position
-                for mv in board.legal_moves:
-                    board.push(mv)
-                    try:
-                        wdl = tb.probe_wdl(board)   # expected: 1 win, 0 draw, -1 loss (probe may raise if not covered)
-                    except Exception:
-                        # not covered by TB for this resulting position
-                        board.pop()
-                        continue
-
-                    # try dtz if available (some tablebases / configs provide dtz)
-                    try:
-                        dtz = tb.probe_dtz(board)
-                        if dtz is None:
-                            dtz = 0
-                    except Exception:
-                        dtz = 0
-
-                    board.pop()
-
-                    if wdl == 1:
-                        # winning move: prefer smallest dtz (fastest conversion)
-                        if best_win is None or dtz < best_win[0]:
-                            best_win = (dtz, mv)
-                    elif wdl == 0:
-                        # any draw is acceptable; keep first draw if no win
-                        if best_draw is None:
-                            best_draw = mv
-                    else:  # wdl == -1
-                        # losing move: prefer largest dtz (delay loss)
-                        if best_loss is None or dtz > best_loss[0]:
-                            best_loss = (dtz, mv)
-
-                # choose priority: win > draw > loss
-                if best_win:
-                    return best_win[1]
-                if best_draw:
-                    return best_draw
-                if best_loss:
-                    return best_loss[1]
-
-                return None
-        except FileNotFoundError:
-            # tablebase path doesn't exist
-            return None
-        except Exception:
-            # any other TB error -> gracefully fallback
-            return None
-        
     def adjusted_depth(self, board, base_depth):
-        material = sum([
-            self.PIECE_VALUES[p.piece_type]
-            for p in board.piece_map().values()
-            if p.piece_type != chess.KING
-        ])
-
-        if material <= 20:
-            return base_depth + 2
-        elif material <= 10:
-            return base_depth + 3
-        else:
-            return base_depth
+        # Calculate non-pawn material
+        material = 0
+        for piece in board.piece_map().values():
+            if piece.piece_type != chess.KING and piece.piece_type != chess.PAWN:
+                material += self.PIECE_VALUES[piece.piece_type]
         
-    def is_endgame(self, board: chess.Board) -> bool:
-        total_material = 0
-        for piece_type in [chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT, chess.PAWN]:
-            total_material += len(board.pieces(piece_type, True))
-            total_material += len(board.pieces(piece_type, False))
-
-        no_queens = (
-            len(board.pieces(chess.QUEEN, True)) == 0 and
-            len(board.pieces(chess.QUEEN, False)) == 0
-        )
-
-        return no_queens and total_material <= 6
+        # Increase depth in endgame
+        if material <= 2500:
+            return base_depth + 2
+        elif material <= 4000:
+            return base_depth + 1
+            
+        return base_depth
