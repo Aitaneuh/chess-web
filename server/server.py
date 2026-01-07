@@ -104,8 +104,10 @@ def is_checkmate():
 
 @app.route("/api/ai_play", methods=["POST"])
 def ai_play():
-    start_time = time.time()
     global board
+    if board.is_checkmate():
+        return jsonify({"move": "", "calc_time": "-", "pos_calc": "-"})
+    start_time = time.time()
     result = ai_agent.play(board, depth=4)
     if result:
         move = result[0]
